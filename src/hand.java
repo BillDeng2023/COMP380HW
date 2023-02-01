@@ -1,4 +1,4 @@
-import java.util.HashSet;
+import java.util.*;
 
 public class hand {
     /**
@@ -6,13 +6,13 @@ public class hand {
      * soft and hard values of the hand.
      */
 
-    private HashSet<card> cards;
+    private ArrayList<card> cards;
 
     /**
      * Initialize hand.
      */
     public hand(){
-        cards = new HashSet<>();
+        cards = new ArrayList<>();
     }
 
     /**
@@ -23,11 +23,18 @@ public class hand {
         cards.add(card);
     }
 
+    public boolean isPair(){
+        if(cards.size() == 2){
+            return cards.get(0).getRank() == cards.get(1).getRank();
+        }
+        return false;
+    }
+
     /**
      * This method adds multiple cards to the hand at once.
      * @param card a hashset containing the card objects to be added
      */
-    public void addCards(HashSet<card> card){
+    public void addCards(ArrayList<card> card){
         cards.addAll(card);
     }
 
@@ -39,45 +46,16 @@ public class hand {
         int sum = 0;
         for(card c : cards){
             Rank rank = c.getRank();
-            switch (rank){
-                case ACE: sum += 1;
-                    break;
-                case TWO : sum += 2;
-                    break;
-                case THREE: sum += 3;
-                    break;
-                case FOUR: sum += 4;
-                    break;
-                case FIVE: sum += 5;
-                    break;
-                case SIX: sum += 6;
-                    break;
-                case SEVEN: sum += 7;
-                    break;
-                case EIGHT: sum += 8;
-                    break;
-                case NINE: sum += 9;
-                    break;
-                case TEN: sum += 10;
-                    break;
-                case JACK : sum += 10;
-                    break;
-                case QUEEN : sum += 10;
-                    break;
-                case KING : sum += 10;
-                    break;
-                default  : sum += 0;
-                    break;
-            }
+            sum += card.rankToValue(rank);
         }
         return sum;
     }
 
-    /**
-     * Calculates the soft value of the hand based on hard value.
-     * @return an integer representing the soft value of the hand
-     */
-    public int getSoftValue(){
+    public int handSize(){
+        return cards.size();
+    }
+
+    public boolean hasAce(){
         boolean hasAce = false;
         // iterate through all cards in the hand to determine if there is an ace
         for(card c : cards){
@@ -86,8 +64,14 @@ public class hand {
                 break;
             }
         }
-
-        if(hasAce) return getHardValue() + 10;
+        return hasAce;
+    }
+    /**
+     * Calculates the soft value of the hand based on hard value.
+     * @return an integer representing the soft value of the hand
+     */
+    public int getSoftValue(){
+        if(this.hasAce()) return getHardValue() + 10;
         else return getHardValue();
     }
 }
