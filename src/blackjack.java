@@ -2,11 +2,8 @@
 //import com.google.common.collect.ImmutableMap;
 
 //import javax.annotation.concurrent.ThreadSafe;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.io.*;
-import java.util.StringTokenizer;
-import java.util.Scanner;
 
 public class blackjack {
     /**
@@ -17,7 +14,8 @@ public class blackjack {
      * @throws IOException throws exception when there is an invalid card
      */
     public static void main(String[] args) throws IOException {
-        BufferedReader bufferedReader = new BufferedReader(new FileReader("src/blackjack_table_samples-V3.csv"));
+        BufferedReader bufferedReader = new BufferedReader(new FileReader(
+            "src/blackjack_table_samples-V3.csv"));
         PrintWriter printWriter = new PrintWriter(new BufferedWriter(new FileWriter("src/blackjack_output.csv")));
         String line = "";
         //Note that in HW1 description the starting index should be 9, but it's different for
@@ -55,7 +53,30 @@ public class blackjack {
 
         printWriter.close();
         bufferedReader.close();
+        try {
+            ArrayList<ArrayList<String>> strat = readStrategy("src/Wiki Strategy (Modified) - hard.csv");
+            System.out.print(strat.toString());
+        } catch (Exception e) {
+            System.out.println("Error");
+        }
 
+    }
+
+    private static ArrayList<ArrayList<String>> readStrategy (String filename) throws Exception {
+        ArrayList<ArrayList<String>> strategy = new ArrayList<>();
+
+        BufferedReader stratReader = new BufferedReader(new FileReader(filename));
+        String stratline = "";
+        stratline = stratReader.readLine();
+        while((stratline = stratReader.readLine()) != null) {
+            ArrayList<String> actions =
+                new ArrayList<>(Arrays.asList(stratline.split(",")));
+            actions.remove(0);
+            strategy.add(actions);
+        }
+
+        stratReader.close();
+        return strategy;
     }
 }
 

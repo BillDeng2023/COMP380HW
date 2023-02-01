@@ -78,8 +78,6 @@ public class card {
         }
     }
 
-
-
     public Rank getRank() {
         return rank;
     }
