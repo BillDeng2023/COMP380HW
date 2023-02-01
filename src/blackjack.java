@@ -31,7 +31,7 @@ public class blackjack {
             for(int i = startingIndex; i < str.length; i++){
                 //the encoding of the sample csv starts at 0 instead of 1 for some reason
                 try{
-                    h.addCard(createCard(str[i]));
+                    h.addCard(new card(str[i]));
                 } catch (Exception e) {
                     System.out.println(str[i]);
                 }
@@ -52,64 +52,10 @@ public class blackjack {
             //skip description line in sample csv file
             line = bufferedReader.readLine();
         }
-    }
 
-    /**
-     * This method parses a unicode string representation for a poker card into a card
-     * object.
-     * @param hexcoding a string containing the unicode representation of the card
-     * @return  a card object
-     * @throws Exception when the string is not a valid unicode representation of a
-     *         poker card used in blackjack.
-     */
-    public static card createCard(String hexcoding) throws Exception{
-        //need to confirm capitalization
-        Rank rank = null;
-        Suite suite = null;
+        printWriter.close();
+        bufferedReader.close();
 
-        switch (hexcoding.charAt(3)){
-            case 'a' : suite = Suite.SPADES;
-                break;
-            case 'b' : suite = Suite.HEARTS;
-                break;
-            case 'c' : suite = Suite.DIAMONDS;
-                break;
-            case 'd' : suite = Suite.CLUBS;
-                break;
-            default  : throw new Exception("illegal suite");
-        }
-
-        switch (hexcoding.charAt(4)){
-            case '1' : rank = Rank.ACE;
-                break;
-            case '2' : rank = Rank.TWO;
-                break;
-            case '3' : rank = Rank.THREE;
-                break;
-            case '4' : rank = Rank.FOUR;
-                break;
-            case '5' : rank = Rank.FIVE;
-                break;
-            case '6' : rank = Rank.SIX;
-                break;
-            case '7' : rank = Rank.SEVEN;
-                break;
-            case '8' : rank = Rank.EIGHT;
-                break;
-            case '9' : rank = Rank.NINE;
-                break;
-            case 'a' : rank = Rank.TEN;
-                break;
-            case 'b' : rank = Rank.JACK;
-                break;
-            case 'd' : rank = Rank.QUEEN;
-                break;
-            case 'e' : rank = Rank.KING;
-                break;
-            default  : throw new Exception("illegal rank");
-        }
-
-        return new card(rank, suite);
     }
 }
 
