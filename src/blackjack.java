@@ -27,7 +27,7 @@ public class blackjack {
         }
 
         BufferedReader bufferedReader = new BufferedReader(new FileReader(
-            "src/blackjack_table_samples-V3.csv"));
+            "src/table-samples-70000.csv"));
         PrintWriter printWriter = new PrintWriter(new BufferedWriter(new FileWriter("src/blackjack_output.csv")));
         String line = "";
         //Note that in HW1 description the starting index should be 9, but it's different for
@@ -70,11 +70,11 @@ public class blackjack {
             else if(h.hasAce() && h.getSoftValue() <= 21){
                 int value = h.getSoftValue();
                 String strategy = softstrat.get(21 - value).get(dealerIndex);
-                if(strategy == "DOUBLE/STAY"){
+                if(strategy.equals("DOUBLE/STAY")){
                     if(h.handSize() == 2) strategy = "DOUBLE";
                     else strategy = "STAY";
                 }
-                else if(strategy == "DOUBLE/HIT"){
+                else if(strategy.equals("DOUBLE/HIT")){
                     if(h.handSize() == 2) strategy = "DOUBLE";
                     else strategy = "HIT";
                 }
@@ -84,15 +84,15 @@ public class blackjack {
             else{
                 int value = h.getHardValue();
                 String strategy = hardstrat.get(21-value).get(dealerIndex);
-                if(strategy == "SURRENDER/STAY"){
+                if(strategy.equals("SURRENDER/STAY")){
                     if(h.handSize() == 2) strategy = "SURRENDER";
                     else strategy = "STAY";
                 }
-                else if(strategy == "SURRENDER/HIT"){
+                else if(strategy.equals("SURRENDER/HIT")){
                     if(h.handSize() == 2) strategy = "SURRENDER";
                     else strategy = "HIT";
                 }
-                else if(strategy == "DOUBLE/HIT"){
+                else if(strategy.equals("DOUBLE/HIT")){
                     if(h.handSize() == 2) strategy = "DOUBLE";
                     else strategy = "HIT";
                 }
