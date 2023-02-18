@@ -7,12 +7,22 @@ public class hand {
      */
 
     private ArrayList<card> cards;
-
+    private boolean isfinal;
+    private boolean surrendered;
+    private boolean doubled;
     /**
      * Initialize hand.
      */
     public hand(){
         cards = new ArrayList<>();
+        isfinal = false;
+        surrendered = false;
+    }
+
+    public hand split(){
+        hand other = new hand();
+        other.addCard(cards.remove(cards.size() - 1));
+        return other;
     }
 
     /**
@@ -28,6 +38,38 @@ public class hand {
             return cards.get(0).getRank() == cards.get(1).getRank();
         }
         return false;
+    }
+
+    public void makeFinal(){
+        isfinal = true;
+    }
+
+    public void makeSurrender(){
+        surrendered = true;
+    }
+
+    public void makeDouble(){
+        doubled = true;
+    }
+
+    public boolean isFinal(){
+        return isfinal;
+    }
+
+    public boolean isSurrendered(){
+        return surrendered;
+    }
+
+    public boolean isDoubled(){
+        return doubled;
+    }
+
+    public boolean isBlackJack(){
+        return (handSize() == 2) && hasAce() && (getSoftValue() == 21);
+    }
+
+    public boolean isBust(){
+        return getHardValue() > 21;
     }
 
     /**
@@ -73,5 +115,11 @@ public class hand {
     public int getSoftValue(){
         if(this.hasAce()) return getHardValue() + 10;
         else return getHardValue();
+    }
+
+    public int highestValue(){
+        int soft = getSoftValue();
+        if(soft > 21) return getHardValue();
+        else return soft;
     }
 }

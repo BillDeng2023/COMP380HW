@@ -12,6 +12,7 @@ public class deck {
                 this.cards.add(new card(rank, suit));
             }
         }
+        shuffle();
     }
 
     public void shuffle() {
@@ -19,9 +20,9 @@ public class deck {
     }
 
     public card draw() {
-        if (this.cards.isEmpty()) {
-            throw new IllegalStateException("The deck is empty");
+        if (cards.isEmpty()) {
+            throw new IllegalStateException("Deck is empty");
         }
-        return this.cards.remove(0);
+        return cards.remove(cards.size() - 1);
     }
 }
