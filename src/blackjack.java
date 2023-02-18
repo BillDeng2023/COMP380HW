@@ -33,7 +33,7 @@ public class blackjack {
         double advanced_max_gain = 0;
         double advanced_max_lost = 0;
 
-        int iteration = 100000;
+        int iteration = 100000000;
         for(int i = 0; i < iteration; i++){
             double naive = play("naive");
             naive_average += naive;
