@@ -25,6 +25,48 @@ public class blackjack {
         } catch (Exception e) {
             System.out.println("read strategies error");
         }
+
+        ArrayList<String[]> presets = new ArrayList<>();
+
+        BufferedReader presetReader = new BufferedReader(new FileReader("hw4.csv"));
+        String presetLn = "";
+        while((presetLn = presetReader.readLine()) != null) {
+            String[] instance = presetLn.split(",");
+            presets.add(instance);
+            presetLn = presetReader.readLine();
+        }
+
+        presetReader.close();
+
+        for (String[] preset : presets) {
+            ArrayList<card> drawnCards = new ArrayList<>();
+            hand playerHand = new hand();
+            card dealerCard;
+            for (int j = 2; j < preset.length; j++) {
+                try {
+                    switch (j) {
+                        case 2:
+                            dealerCard = new card(preset[j]);
+                            drawnCards.add(dealerCard);
+                            break;
+                        case 11:
+                        case 12:
+                            card playerCard = new card(preset[j]);
+                            playerHand.addCard(playerCard);
+                            drawnCards.add(playerCard);
+                            break;
+                        default:
+                            if (!preset[j].equals("")) {
+                                drawnCards.add(new card(preset[j]));
+                            }
+                    }
+                } catch (Exception e) {
+                    System.out.println("invalid input preset");
+                }
+            }
+
+        }
+
         double naive_average = 0;
         double naive_max_gain = 0;
         double naive_max_lost = 0;
@@ -140,6 +182,122 @@ public class blackjack {
                     break;
             }
         }
+
+
+        //calculate sum of outcome
+        double outcome = 0;
+        for(hand hand: hands){
+            if(hand.isBlackJack()){
+                if(dealerHand.isBlackJack()){
+                    outcome += 0;
+                }
+                else{
+                    if(hand.isDoubled()) outcome += 3;
+                    else outcome += 1.5;
+                }
+            }
+            else if(dealerHand.isBlackJack() || hand.isBust()){
+                if(hand.isDoubled()) outcome -= 2;
+                else outcome -= 1;
+            }
+            else if(hand.isSurrendered()){
+                outcome -= 0.5;
+            }
+            else{
+                if(dealerHand.highestValue() == hand.highestValue()){
+                    outcome += 0;
+                }
+                else if(dealerHand.highestValue() > hand.highestValue()){
+                    if(hand.isDoubled()) outcome -= 2;
+                    else outcome -= 1;
+                }
+                else if(dealerHand.highestValue() < hand.highestValue()){
+                    if(hand.isDoubled()) outcome += 2;
+                    else outcome += 1;
+                }
+            }
+        }
+
+        return outcome;
+    }
+
+    private static double play(String strategy, deck deck, hand playerHand, card dealerCard){
+        ArrayList<hand> hands = new ArrayList<>();
+        hands.add(playerHand);
+
+        hand dealerHand = new hand();
+        dealerHand.addCard(dealerCard);
+
+        boolean allFinal = false;
+        //player draws cards and plays
+        while(allFinal == false){
+            allFinal = true;
+            ListIterator<hand> handIterator = hands.listIterator();
+            while (handIterator.hasNext()){
+                hand hand = handIterator.next();
+                if(hand.isFinal()){
+                    continue;
+                }
+                else{
+                    if(hand.getHardValue() >= 21){
+                        hand.makeFinal();
+                        continue;
+                    }
+                    allFinal = false;
+                    //determine action according to strategy
+                    String action = null;
+                    if(strategy.equals("naive")){
+                        action = naiveStrategy(hand);
+                    }
+                    else if(strategy.equals("advanced")){
+                        action = advancedStrategy(dealerCard, hand);
+                    }
+                    //apply action
+                    switch (action) {
+                        case "STAY":
+                            hand.makeFinal();
+                            break;
+                        case "HIT":
+                            hand.addCard(deck.draw());
+                            break;
+                        case "SURRENDER":
+                            hand.makeSurrender();
+                            hand.makeFinal();
+                            break;
+                        case "SPLIT":
+                            hand other = hand.split();
+                            hand.addCard(deck.draw());
+                            other.addCard(deck.draw());
+                            handIterator.add(other);
+                            break;
+                        case "DOUBLE":
+                            hand.makeDouble();
+                            hand.makeFinal();
+                            hand.addCard(deck.draw());
+                            break;
+                    }
+                }
+            }
+        }
+
+        //dealer draws cards and plays
+        while(dealerHand.isFinal() == false){
+            if(dealerHand.getHardValue() >= 21){
+                dealerHand.makeFinal();
+                continue;
+            }
+            //determine action according to strategy
+            String action = naiveStrategy(dealerHand);
+            switch (action) {
+                case "STAY":
+                    dealerHand.makeFinal();
+                    break;
+                case "HIT":
+                    dealerHand.addCard(deck.draw());
+                    break;
+            }
+        }
+
 
         //calculate sum of outcome
         double outcome = 0;
