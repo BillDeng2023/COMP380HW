@@ -15,6 +15,18 @@ public class deck {
         shuffle();
     }
 
+    public deck(ArrayList<card> cards){
+        this.cards = cards;
+    }
+
+    public ArrayList<card> getDeckContent(){
+        return this.cards;
+    }
+
+    public void removeCards(ArrayList<card> cardsToRemove) {
+        this.cards.removeAll(cardsToRemove);
+    }
+
     public void shuffle() {
         Collections.shuffle(this.cards);
     }

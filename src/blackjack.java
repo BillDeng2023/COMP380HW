@@ -28,20 +28,20 @@ public class blackjack {
 
         ArrayList<String[]> presets = new ArrayList<>();
 
-        BufferedReader presetReader = new BufferedReader(new FileReader("hw4.csv"));
+        BufferedReader presetReader = new BufferedReader(new FileReader("src/hw4.csv"));
+        PrintWriter printWriter = new PrintWriter(new BufferedWriter(new FileWriter("src/blackjack_output.csv")));
         String presetLn = "";
         while((presetLn = presetReader.readLine()) != null) {
+            if(presetLn.length() < 1 || presetLn.charAt(0) != ',') continue;
             String[] instance = presetLn.split(",");
             presets.add(instance);
             presetLn = presetReader.readLine();
         }
 
-        presetReader.close();
-
         for (String[] preset : presets) {
             ArrayList<card> drawnCards = new ArrayList<>();
             hand playerHand = new hand();
-            card dealerCard;
+            card dealerCard = null;
             for (int j = 2; j < preset.length; j++) {
                 try {
                     switch (j) {
@@ -65,39 +65,35 @@ public class blackjack {
                 }
             }
 
+
+
+            double naive_average = 0;
+            double advanced_average = 0;
+            //System.out.println(dealerCard.getRank() + " " + dealerCard.getSuite());
+            int iteration = 2000000;
+            for(int i = 0; i < iteration; i++){
+                deck deckNaive = new deck();
+                deckNaive.removeCards(drawnCards);
+                deck deckAdvanced = new deck(deckNaive.getDeckContent());
+
+                double naive = play("naive", deckNaive, playerHand, dealerCard);
+                naive_average += naive;
+
+                double advanced = play("advanced", deckAdvanced, playerHand, dealerCard);
+                advanced_average += advanced;
+            }
+            naive_average = naive_average/iteration;
+            advanced_average = advanced_average/iteration;
+            StringBuilder line = new StringBuilder();
+            line.append(naive_average + "," + advanced_average);
+            for (int j = 2; j < preset.length; j++) {
+                line.append("," + preset[j]);
+            }
+            printWriter.println(line.toString());
         }
 
-        double naive_average = 0;
-        double naive_max_gain = 0;
-        double naive_max_lost = 0;
-
-        double advanced_average = 0;
-        double advanced_max_gain = 0;
-        double advanced_max_lost = 0;
-
-        int iteration = 100000000;
-        for(int i = 0; i < iteration; i++){
-            double naive = play("naive");
-            naive_average += naive;
-            naive_max_gain = Math.max(naive_max_gain, naive);
-            naive_max_lost = Math.min(naive_max_lost, naive);
-
-            double advanced = play("advanced");
-            advanced_average += advanced;
-            advanced_max_gain = Math.max(advanced_max_gain, advanced);
-            advanced_max_lost = Math.min(advanced_max_lost, advanced);
-        }
-
-        naive_average = naive_average/iteration;
-        advanced_average = advanced_average/iteration;
-
-        System.out.println(naive_average);
-        System.out.println(naive_max_gain);
-        System.out.println(naive_max_lost);
-
-        System.out.println(advanced_average);
-        System.out.println(advanced_max_gain);
-        System.out.println(advanced_max_lost);
+        presetReader.close();
+        printWriter.close();
     }
 
     private static double play(String strategy){

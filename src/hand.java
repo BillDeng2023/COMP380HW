@@ -14,9 +14,19 @@ public class hand {
      * Initialize hand.
      */
     public hand(){
-        cards = new ArrayList<>();
+        this.cards = new ArrayList<>();
         isfinal = false;
         surrendered = false;
+    }
+
+    public hand(ArrayList<card> cards){
+        this.cards = cards;
+        isfinal = false;
+        surrendered = false;
+    }
+
+    public ArrayList<card> getHandContent(){
+        return this.cards;
     }
 
     public hand split(){

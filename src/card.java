@@ -119,4 +119,16 @@ public class card {
     public Suite getSuite() {
         return suite;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (!(obj instanceof card)) {
+            return false;
+        }
+        card otherCard = (card) obj;
+        return this.rank == otherCard.getRank() && this.suite == otherCard.getSuite();
+    }
 }
