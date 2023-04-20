@@ -132,4 +132,65 @@ public class hand {
         if(soft > 21) return getHardValue();
         else return soft;
     }
+
+    public card getDealerCard(){
+        return cards.get(0);
+    }
+
+    public int getPairValue() {
+        // get the rank of the first card in the hand
+        Rank rank = cards.get(0).getRank();
+        // return the pair value based on the rank of the card
+        switch(rank) {
+            case TWO:
+                return 2;
+            case THREE:
+                return 3;
+            case FOUR:
+                return 4;
+            case FIVE:
+                return 5;
+            case SIX:
+                return 6;
+            case SEVEN:
+                return 7;
+            case EIGHT:
+                return 8;
+            case NINE:
+                return 9;
+            case TEN:
+            case JACK:
+            case QUEEN:
+            case KING:
+                return 10;
+            case ACE:
+                // return a special value for pairs of aces
+                return 12;
+            default:
+                return 0;
+        }
+    }
+
+    public boolean isSurrender() {
+        // Check if the hand is eligible for surrender based on its value
+        // and the rules of the game being played.
+        if (this.cards.size() == 2 && this.getHardValue() == 16) {
+            // The hand is eligible for surrender if it has a value of 16 and
+            // the dealer's up card is 9, 10, or Ace.
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public boolean isSoft() {
+        return hasAce() && getSoftValue() <= 21;
+    }
+
+
+
+
+
+
+
 }

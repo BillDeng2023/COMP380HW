@@ -131,4 +131,8 @@ public class card {
         card otherCard = (card) obj;
         return this.rank == otherCard.getRank() && this.suite == otherCard.getSuite();
     }
+    public int getBasicValue() {
+        return rankToValue(rank);
+    }
+
 }
