@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -52,4 +53,17 @@ public class deck {
         return newDeck;
     }
 
+    @Override
+    public int hashCode(){
+        int[] values = new int[cards.size()];
+        for (int i = 0; i < cards.size(); i++) {
+            int rankValue = cards.get(i).getRank().getValue();
+            if (rankValue >= 10) {
+                rankValue = 10;
+            }
+            values[i] = rankValue;
+        }
+        Arrays.sort(values);
+        return Arrays.hashCode(values);
+    }
 }
