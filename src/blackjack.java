@@ -332,8 +332,6 @@ public class blackjack {
         return outcome;
     }
 
-    /*
-
     private static String naiveStrategy(hand h){
         if(h.getHardValue() > 11) {
             return "STAY";
@@ -347,88 +345,6 @@ public class blackjack {
             }
         }
     }
-    */
-
-    /**
-     * New naive strategy
-     */
-    private static String naiveStrategy(hand hand) {
-        int hardValue = hand.getHardValue();
-        int softValue = hand.getSoftValue();
-        card dealerCard = hand.getDealerCard();
-
-        if(hand.isPair()){
-            int pairValue = hand.getPairValue();
-            ArrayList<String> pairStrategy = pairstrat.get(pairValue-1);
-            return pairStrategy.get(dealerCard.getBasicValue()-2);
-        }
-        else if(hardValue <= 8){
-            return "HIT";
-        }
-        else if(hardValue == 9){
-            if(dealerCard.getBasicValue() >= 3 && dealerCard.getBasicValue() <= 6){
-                return "DOUBLE";
-            }
-            else{
-                return "HIT";
-            }
-        }
-        else if(hardValue == 10){
-            if(dealerCard.getBasicValue() >= 2 && dealerCard.getBasicValue() <= 9){
-                return "DOUBLE";
-            }
-            else{
-                return "HIT";
-            }
-        }
-        else if(hardValue == 11){
-            if(dealerCard.getBasicValue() != 11){
-                return "DOUBLE";
-            }
-            else{
-                return "HIT";
-            }
-        }
-        else if(hardValue >= 12 && hardValue <= 16){
-            ArrayList<String> hardStrategy = hardstrat.get(hardValue-12);
-            return hardStrategy.get(dealerCard.getBasicValue()-2);
-        }
-        else if(hardValue >= 17){
-            return "STAY";
-        }
-        else if(softValue == 13 || softValue == 14){
-            if(dealerCard.getBasicValue() >= 5 && dealerCard.getBasicValue() <= 6){
-                return "DOUBLE";
-            }
-            else{
-                return "HIT";
-            }
-        }
-        else if(softValue == 15 || softValue == 16){
-            if(dealerCard.getBasicValue() >= 4 && dealerCard.getBasicValue() <= 6){
-                return "DOUBLE";
-            }
-            else{
-                return "HIT";
-            }
-        }
-        else if(softValue == 17){
-            if(dealerCard.getBasicValue() >= 3 && dealerCard.getBasicValue() <= 6){
-                return "DOUBLE";
-            }
-            else{
-                return "HIT";
-            }
-        }
-        else if(softValue >= 18){
-            return "STAY";
-        }
-        else{
-            return "INVALID";
-        }
-    }
-
-    /*
 
     private static String advancedStrategy(card dealerCard, hand h){
         //Simple strategy
@@ -474,76 +390,6 @@ public class blackjack {
         }
     }
 
-    */
-
-    /**/
-
-    private static String advancedStrategy(card dealerCard, hand hand) {
-        int hardValue = hand.getHardValue();
-        int softValue = hand.getSoftValue();
-
-        if(hand.isSurrender()){
-            return "SURRENDER";
-        }
-        else if(hand.isPair()){
-            int pairValue = hand.getPairValue();
-            ArrayList<String> pairStrategy = pairstrat.get(pairValue-1);
-            return pairStrategy.get(dealerCard.getBasicValue()-2);
-        }
-        else if(hand.isSoft()){
-            ArrayList<String> softStrategy = softstrat.get(softValue-13);
-            return softStrategy.get(dealerCard.getBasicValue()-2);
-        }
-        else if(hardValue <= 8){
-            return "HIT";
-        }
-        else if(hardValue == 9){
-            ArrayList<String> hardStrategy = hard9strat.get(dealerCard.getBasicValue()-2);
-            if(hand.hasAce()){
-                return "HIT";
-            }
-            else{
-                return hardStrategy.get(0);
-            }
-        }
-        else if(hardValue == 10){
-            ArrayList<String> hardStrategy = hard10strat.get(dealerCard.getBasicValue()-2);
-            if(hand.hasAce()){
-                return "HIT";
-            }
-            else{
-                return hardStrategy.get(0);
-            }
-        }
-        else if(hardValue == 11){
-            ArrayList<String> hardStrategy = hard11strat.get(dealerCard.getBasicValue()-2);
-            if(hand.hasAce()){
-                return "HIT";
-            }
-            else{
-                return hardStrategy.get(0);
-            }
-        }
-        else if(hardValue == 12){
-            ArrayList<String> hardStrategy = hard12strat.get(dealerCard.getBasicValue()-2);
-            return hardStrategy.get(0);
-        }
-        else if(hardValue >= 13 && hardValue <= 16){
-            ArrayList<String> hardStrategy = hard13to16strat.get(dealerCard.getBasicValue()-2);
-            if(hand.hasAce()){
-                return "HIT";
-            }
-            else{
-                return hardStrategy.get(hardValue-13);
-            }
-        }
-        else{ // hardValue >= 17
-            return "STAND";
-        }
-    }
-
-
-
     private static ArrayList<ArrayList<String>> readStrategy (String filename) throws Exception {
         ArrayList<ArrayList<String>> strategy = new ArrayList<>();
 
@@ -561,5 +407,3 @@ public class blackjack {
         return strategy;
     }
 }
-
-
