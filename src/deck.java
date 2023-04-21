@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 public class deck {
 
@@ -27,6 +28,8 @@ public class deck {
         this.cards.removeAll(cardsToRemove);
     }
 
+
+
     public void shuffle() {
         Collections.shuffle(this.cards);
     }
@@ -37,4 +40,16 @@ public class deck {
         }
         return cards.remove(cards.size() - 1);
     }
+
+    // Removes a specific card from the deck
+    public void removeCard(card cardToRemove) {
+        cards.removeIf(card -> card.equals(cardToRemove));
+    }
+
+    // Returns a deep copy of the deck object
+    public deck copy() {
+        deck newDeck = new deck(new ArrayList<card>(this.cards));
+        return newDeck;
+    }
+
 }

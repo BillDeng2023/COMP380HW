@@ -16,7 +16,7 @@ public class blackjack {
      * @param args
      * @throws IOException throws exception when there is an invalid card
      */
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         //read in strategies
         try {
             hardstrat = readStrategy("src/Wiki Strategy (Modified) - hard.csv");
@@ -28,7 +28,7 @@ public class blackjack {
 
         ArrayList<String[]> presets = new ArrayList<>();
 
-        BufferedReader presetReader = new BufferedReader(new FileReader("src/hw4.csv"));
+        BufferedReader presetReader = new BufferedReader(new FileReader("src/hw5.csv"));
         PrintWriter printWriter = new PrintWriter(new BufferedWriter(new FileWriter("src/blackjack_output.csv")));
         String presetLn = "";
         while((presetLn = presetReader.readLine()) != null) {
@@ -37,6 +37,8 @@ public class blackjack {
             presets.add(instance);
             presetLn = presetReader.readLine();
         }
+
+        presetReader.close();
 
         for (String[] preset : presets) {
             ArrayList<card> drawnCards = new ArrayList<>();
@@ -65,25 +67,31 @@ public class blackjack {
                 }
             }
 
-
+            if(dealerCard.equals(new card("1f0d9"))){
+                deck deckNaive = new deck();
+                deckNaive.removeCards(drawnCards);
+                hand dealerHand = new hand();
+                dealerHand.addCard(dealerCard);
+                System.out.println(makeIdealStrat(deckNaive, playerHand, dealerHand));
+            }
 
             double naive_average = 0;
             double advanced_average = 0;
             //System.out.println(dealerCard.getRank() + " " + dealerCard.getSuite());
-            int iteration = 2000000;
+            int iteration = 2000;
             for(int i = 0; i < iteration; i++){
                 deck deckNaive = new deck();
                 deckNaive.removeCards(drawnCards);
-                deck deckAdvanced = new deck(deckNaive.getDeckContent());
+                deck deckAdvanced = deckNaive.copy();
 
-                double naive = play("naive", deckNaive, playerHand, dealerCard);
-                naive_average += naive;
+//                double naive = play("naive", deckNaive, playerHand, dealerCard);
+//                naive_average += naive;
 
                 double advanced = play("advanced", deckAdvanced, playerHand, dealerCard);
                 advanced_average += advanced;
             }
-            naive_average = naive_average/iteration;
-            advanced_average = advanced_average/iteration;
+//            naive_average = naive_average/iteration;
+            advanced_average = advanced_average/(double) iteration;
             StringBuilder line = new StringBuilder();
             line.append(naive_average + "," + advanced_average);
             for (int j = 2; j < preset.length; j++) {
@@ -92,129 +100,176 @@ public class blackjack {
             printWriter.println(line.toString());
         }
 
-        presetReader.close();
+
         printWriter.close();
     }
 
-    private static double play(String strategy){
-        deck deck = new deck();
-        ArrayList<hand> hands = new ArrayList<>();
-        //create dealer's hand
-        hand dealerHand = new hand();
-        card dealerCard = deck.draw();
-        dealerHand.addCard(dealerCard);
-        //create player's hand
-        hand playerHand = new hand();
-        playerHand.addCard(deck.draw());
-        playerHand.addCard(deck.draw());
-        hands.add(playerHand);
-
-        boolean allFinal = false;
-        //player draws cards and plays
-        while(allFinal == false){
-            allFinal = true;
-            ListIterator<hand> handIterator = hands.listIterator();
-            while (handIterator.hasNext()){
-                hand hand = handIterator.next();
-                if(hand.isFinal()){
-                    continue;
-                }
-                else{
-                    if(hand.getHardValue() >= 21){
-                        hand.makeFinal();
-                        continue;
-                    }
-                    allFinal = false;
-                    //determine action according to strategy
-                    String action = null;
-                    if(strategy.equals("naive")){
-                        action = naiveStrategy(hand);
-                    }
-                    else if(strategy.equals("advanced")){
-                        action = advancedStrategy(dealerCard, hand);
-                    }
-                    //apply action
-                    switch (action) {
-                        case "STAY":
-                            hand.makeFinal();
-                            break;
-                        case "HIT":
-                            hand.addCard(deck.draw());
-                            break;
-                        case "SURRENDER":
-                            hand.makeSurrender();
-                            hand.makeFinal();
-                            break;
-                        case "SPLIT":
-                            hand other = hand.split();
-                            hand.addCard(deck.draw());
-                            other.addCard(deck.draw());
-                            handIterator.add(other);
-                            break;
-                        case "DOUBLE":
-                            hand.makeDouble();
-                            hand.makeFinal();
-                            hand.addCard(deck.draw());
-                            break;
-                    }
-                }
-            }
-        }
-
-        //dealer draws cards and plays
-        while(dealerHand.isFinal() == false){
-            if(dealerHand.getHardValue() >= 21){
-                dealerHand.makeFinal();
-                continue;
-            }
-            //determine action according to strategy
-            String action = naiveStrategy(dealerHand);
-            switch (action) {
-                case "STAY":
-                    dealerHand.makeFinal();
-                    break;
-                case "HIT":
-                    dealerHand.addCard(deck.draw());
-                    break;
-            }
-        }
-
-
-        //calculate sum of outcome
+    //calculate score with one hand
+    public static double calculateScore(hand hand, hand dealerHand) {
         double outcome = 0;
-        for(hand hand: hands){
-            if(hand.isBlackJack()){
-                if(dealerHand.isBlackJack()){
-                    outcome += 0;
-                }
-                else{
-                    if(hand.isDoubled()) outcome += 3;
-                    else outcome += 1.5;
-                }
+        if(hand.isBlackJack()){
+            if(dealerHand.isBlackJack()){
+                outcome += 0;
             }
-            else if(dealerHand.isBlackJack() || hand.isBust()){
+            else{
+                if(hand.isDoubled()) outcome += 3;
+                else outcome += 1.5;
+            }
+        }
+        else if(dealerHand.isBlackJack() || hand.isBust()){
+            if(hand.isDoubled()) outcome -= 2;
+            else outcome -= 1;
+        }
+        else if(hand.isSurrendered()){
+            outcome -= 0.5;
+        }
+        else{
+            if(dealerHand.highestValue() == hand.highestValue()){
+                outcome += 0;
+            }
+            else if(dealerHand.highestValue() > hand.highestValue()){
                 if(hand.isDoubled()) outcome -= 2;
                 else outcome -= 1;
             }
-            else if(hand.isSurrendered()){
-                outcome -= 0.5;
-            }
-            else{
-                if(dealerHand.highestValue() == hand.highestValue()){
-                    outcome += 0;
-                }
-                else if(dealerHand.highestValue() > hand.highestValue()){
-                    if(hand.isDoubled()) outcome -= 2;
-                    else outcome -= 1;
-                }
-                else if(dealerHand.highestValue() < hand.highestValue()){
-                    if(hand.isDoubled()) outcome += 2;
-                    else outcome += 1;
-                }
+            else if(dealerHand.highestValue() < hand.highestValue()){
+                if(hand.isDoubled()) outcome += 2;
+                else outcome += 1;
             }
         }
-
         return outcome;
+    }
+
+    //calculate score for one hand for all possible dealerCards
+    public static double calculateScore(deck deck, hand hand, hand dealerHand) {
+        double outcome = 0;
+        List<card> remainingCards = deck.getDeckContent();
+        int numRemainingCards = remainingCards.size();
+        deck newDeck;
+        if (dealerHand.isBust()) {
+            return calculateScore(hand, dealerHand);
+        }
+        else{
+            String action = naiveStrategy(dealerHand);
+            switch (action) {
+                case "STAY":
+                    return calculateScore(hand, dealerHand);
+                case "HIT":
+                    for (card card : remainingCards) {
+                        newDeck = deck.copy();
+                        newDeck.removeCard(card);
+
+                        hand newDealerHand = dealerHand.copy();
+                        newDealerHand.addCard(card);
+
+                        outcome += calculateScore(newDeck, hand, newDealerHand);
+                    }
+
+            }
+        }
+        outcome /= numRemainingCards;
+        return outcome;
+    }
+
+    //calculate aggregate score for list of hands
+    public static double calculateScore(ArrayList<hand> hands, hand dealerHand) {
+        double outcome = 0;
+        for(hand hand: hands){
+            outcome += calculateScore(hand, dealerHand);
+        }
+        return outcome;
+    }
+
+    public static double makeIdealStrat(deck deck, hand hand, hand dealerHand) {
+        double maxScore = -8;
+        double totalScore = 0;
+        if (hand.isBust()) {
+            deck newDeck = deck.copy();
+            hand newPlayerHand = hand.copy();
+            newPlayerHand.makeFinal();
+            return calculateScore(newDeck, newPlayerHand, dealerHand);
+        }
+        else{
+            //calculate score for different outcomes
+            double hitScore = 0;
+            double stayScore = 0;
+            double doubleScore = 0;
+            double splitScore = 0;
+            double surrenderScore = 0;
+
+            List<card> remainingCards = deck.getDeckContent();
+            int numRemainingCards = remainingCards.size();
+            deck newDeck;
+
+            // HIT
+            for (card card : remainingCards) {
+                newDeck = deck.copy();
+                newDeck.removeCard(card);
+
+                hand newPlayerHand = hand.copy();
+                newPlayerHand.addCard(card);
+
+                hitScore += makeIdealStrat(newDeck, newPlayerHand, dealerHand);
+            }
+            hitScore /= numRemainingCards;
+
+
+
+            // SPLIT
+            if (hand.isPair()) {
+                hand hand1 = hand.copy();
+                hand hand2 = hand1.split();
+                double splitScore1 = 0;
+                double splitScore2 = 0;
+                //Needs more work
+                for (card card : remainingCards) {
+                    newDeck = deck.copy();
+                    newDeck.removeCard(card);
+                    hand newPlayerHand1 = hand1.copy();
+                    hand newPlayerHand2 = hand2.copy();
+
+                    newPlayerHand1.addCard(card);
+                    splitScore1 += makeIdealStrat(newDeck, newPlayerHand1, dealerHand);
+
+                    newPlayerHand2.addCard(card);
+                    splitScore2 += makeIdealStrat(newDeck, newPlayerHand2, dealerHand);
+                }
+
+                splitScore1 /= numRemainingCards;
+                splitScore2 /= numRemainingCards;
+                splitScore = splitScore1 + splitScore2;
+            }
+            else {
+                splitScore = -8;
+            }
+
+            //Double
+            for (card card : remainingCards) {
+                newDeck = deck.copy();
+                newDeck.removeCard(card);
+
+                hand newPlayerHand = hand.copy();
+                newPlayerHand.addCard(card);
+                newPlayerHand.makeDouble();
+                newPlayerHand.makeFinal();
+
+                doubleScore += calculateScore(newDeck, hand, dealerHand);
+            }
+            doubleScore /= numRemainingCards;
+
+            // STAY
+            newDeck = deck.copy();
+            hand newPlayerHand = hand.copy();
+            newPlayerHand.makeFinal();
+            stayScore = calculateScore(newDeck, newPlayerHand, dealerHand);
+
+            //Surrender
+            newPlayerHand.makeSurrender();
+            surrenderScore = calculateScore(newDeck, newPlayerHand, dealerHand);
+
+            double MaxScore = Math.max(hitScore, Math.max(stayScore, Math.max(splitScore, Math.max(surrenderScore, doubleScore))));
+            return MaxScore;
+        }
+
     }
 
     private static double play(String strategy, deck deck, hand playerHand, card dealerCard){
@@ -296,38 +351,7 @@ public class blackjack {
 
 
         //calculate sum of outcome
-        double outcome = 0;
-        for(hand hand: hands){
-            if(hand.isBlackJack()){
-                if(dealerHand.isBlackJack()){
-                    outcome += 0;
-                }
-                else{
-                    if(hand.isDoubled()) outcome += 3;
-                    else outcome += 1.5;
-                }
-            }
-            else if(dealerHand.isBlackJack() || hand.isBust()){
-                if(hand.isDoubled()) outcome -= 2;
-                else outcome -= 1;
-            }
-            else if(hand.isSurrendered()){
-                outcome -= 0.5;
-            }
-            else{
-                if(dealerHand.highestValue() == hand.highestValue()){
-                    outcome += 0;
-                }
-                else if(dealerHand.highestValue() > hand.highestValue()){
-                    if(hand.isDoubled()) outcome -= 2;
-                    else outcome -= 1;
-                }
-                else if(dealerHand.highestValue() < hand.highestValue()){
-                    if(hand.isDoubled()) outcome += 2;
-                    else outcome += 1;
-                }
-            }
-        }
+        double outcome = calculateScore(hands, dealerHand);
 
         return outcome;
     }

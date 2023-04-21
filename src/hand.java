@@ -25,6 +25,11 @@ public class hand {
         surrendered = false;
     }
 
+    public hand copy() {
+        hand newHand = new hand(new ArrayList<card>(this.cards));
+        return newHand;
+    }
+
     public ArrayList<card> getHandContent(){
         return this.cards;
     }
@@ -52,6 +57,10 @@ public class hand {
 
     public void makeFinal(){
         isfinal = true;
+    }
+
+    public void unFinal(){
+        isfinal = false;
     }
 
     public void makeSurrender(){
