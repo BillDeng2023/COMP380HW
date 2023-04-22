@@ -11,6 +11,7 @@ public class blackjack {
     private static ArrayList<ArrayList<String>> pairstrat = null;
 
     private static PositionCache pCache = new PositionCache();
+    private static PositionCache dCache = new PositionCache();
     /**
      * The main function reads in data from the given blackjack situation samples and writes
      * an output document containing the situations and next step for the player based
@@ -34,13 +35,13 @@ public class blackjack {
         PrintWriter printWriter = new PrintWriter(new BufferedWriter(new FileWriter("src/blackjack_output.csv")));
         String presetLn = "";
         while((presetLn = presetReader.readLine()) != null) {
-            if(presetLn.length() < 1 || presetLn.charAt(0) != ',') continue;
+            if(presetLn.length() < 1 || presetLn.charAt(0) != ','){
+                continue;
+            }
             String[] instance = presetLn.split(",");
             presets.add(instance);
-            presetLn = presetReader.readLine();
         }
 
-        presetReader.close();
 
         for (String[] preset : presets) {
             ArrayList<card> drawnCards = new ArrayList<>();
@@ -69,33 +70,31 @@ public class blackjack {
                 }
             }
 
-            if(dealerCard.equals(new card("1f0d9"))){
-                deck deckNaive = new deck();
-                deckNaive.removeCards(drawnCards);
-                hand dealerHand = new hand();
-                dealerHand.addCard(dealerCard);
-                System.out.println(makeIdealStrat(deckNaive, playerHand, dealerHand));
-            }
+            deck deckNaive = new deck();
+            hand dealerHand = new hand();
+            hand newPlayerHand = playerHand.copy();
+            deckNaive.removeCards(drawnCards);
+            dealerHand.addCard(dealerCard);
+            makeIdealStrat(deckNaive, newPlayerHand, dealerHand);
 
             double naive_average = 0;
             double advanced_average = 0;
             //System.out.println(dealerCard.getRank() + " " + dealerCard.getSuite());
-            int iteration = 2000;
+            int iteration = 100;
             for(int i = 0; i < iteration; i++){
-                deck deckNaive = new deck();
+                deckNaive = new deck();
                 deckNaive.removeCards(drawnCards);
                 deck deckAdvanced = deckNaive.copy();
 
-//                double naive = play("naive", deckNaive, playerHand, dealerCard);
-//                naive_average += naive;
-
+                double naive = playIdeal(deckNaive, playerHand, dealerCard);
+                naive_average += naive;
                 double advanced = play("advanced", deckAdvanced, playerHand, dealerCard);
                 advanced_average += advanced;
             }
-//            naive_average = naive_average/iteration;
+            naive_average = naive_average/iteration;
             advanced_average = advanced_average/(double) iteration;
             StringBuilder line = new StringBuilder();
-            line.append(naive_average + "," + advanced_average);
+            line.append(Math.round(naive_average * 1e5) / 1e5 + "," + advanced_average);
             for (int j = 2; j < preset.length; j++) {
                 line.append("," + preset[j]);
             }
@@ -108,67 +107,80 @@ public class blackjack {
 
     //calculate score with one hand
     public static double calculateScore(hand hand, hand dealerHand) {
-        double outcome = 0;
-        if(hand.isBlackJack()){
+        if(hand.isSurrendered()){
+            return -0.5;
+        }
+        else if(hand.isBlackJack()){
             if(dealerHand.isBlackJack()){
-                outcome += 0;
+                return 0;
             }
             else{
-                if(hand.isDoubled()) outcome += 3;
-                else outcome += 1.5;
+                if(hand.isDoubled()) return 3;
+                else return 1.5;
             }
         }
         else if(dealerHand.isBlackJack() || hand.isBust()){
-            if(hand.isDoubled()) outcome -= 2;
-            else outcome -= 1;
-        }
-        else if(hand.isSurrendered()){
-            outcome -= 0.5;
+            if(hand.isDoubled()) return -2;
+            else return -1;
         }
         else{
             if(dealerHand.highestValue() == hand.highestValue()){
-                outcome += 0;
+                return 0;
             }
             else if(dealerHand.highestValue() > hand.highestValue()){
-                if(hand.isDoubled()) outcome -= 2;
-                else outcome -= 1;
+                if(hand.isDoubled()) return -2;
+                else return -1;
             }
             else if(dealerHand.highestValue() < hand.highestValue()){
-                if(hand.isDoubled()) outcome += 2;
-                else outcome += 1;
+                if(hand.isDoubled()) return 2;
+                else return 1;
             }
         }
-        return outcome;
+        return 1000000;
     }
 
     //calculate score for one hand for all possible dealerCards
     public static double calculateScore(deck deck, hand hand, hand dealerHand) {
+        //if(hand.isSurrendered()) return -0.5;
+        //checks cache
+        Position position = new Position (deck, hand, dealerHand);
+        int key = position.hashCode();
+        if(dCache.hasKey(key)){
+            return dCache.getValue(key).getScore();
+        }
+
         double outcome = 0;
+        String action = "";
         List<card> remainingCards = deck.getDeckContent();
         int numRemainingCards = remainingCards.size();
         deck newDeck;
         if (dealerHand.isBust()) {
-            return calculateScore(hand, dealerHand);
+            outcome = calculateScore(hand, dealerHand);
         }
         else{
-            String action = naiveStrategy(dealerHand);
+            action = naiveStrategy(dealerHand);
             switch (action) {
                 case "STAY":
-                    return calculateScore(hand, dealerHand);
+                    outcome = calculateScore(hand, dealerHand);
+                    break;
                 case "HIT":
                     for (card card : remainingCards) {
                         newDeck = deck.copy();
+                        hand newPlayerHand = hand.copy();
                         newDeck.removeCard(card);
 
                         hand newDealerHand = dealerHand.copy();
                         newDealerHand.addCard(card);
 
-                        outcome += calculateScore(newDeck, hand, newDealerHand);
+                        double temp = calculateScore(newDeck, newPlayerHand, newDealerHand);
+                        outcome += temp;
                     }
 
+                    outcome /= numRemainingCards;
+                    break;
             }
         }
-        outcome /= numRemainingCards;
+        dCache.putValue(position.hashCode(), action, outcome);
         return outcome;
     }
 
@@ -183,96 +195,79 @@ public class blackjack {
 
     public static double makeIdealStrat(deck deck, hand hand, hand dealerHand) {
         double maxScore = -8;
+        Position position = new Position (deck, hand, dealerHand);
+        int key = position.hashCode();
+        if(pCache.hasKey(key)){
+            return pCache.getValue(key).getScore();
+        }
 
+        deck newDeck;
+        hand newPlayerHand;
+        hand newDealerHand;
         if (hand.isBust()) {
-            deck newDeck = deck.copy();
-            hand newPlayerHand = hand.copy();
+            newDeck = deck.copy();
+            newPlayerHand = hand.copy();
+            newDealerHand = dealerHand.copy();
             newPlayerHand.makeFinal();
-            maxScore =  calculateScore(newDeck, newPlayerHand, dealerHand);
-            Position position = new Position (deck, hand, dealerHand);
-            pCache.putValue(position.hashCode(), "BUST", maxScore);
+            maxScore =  calculateScore(newDeck, newPlayerHand, newDealerHand);
             return maxScore;
         }
         else{
             //calculate score for different outcomes
-            double hitScore = 0;
-            double stayScore = 0;
-            double doubleScore = 0;
-            double splitScore = 0;
-            double surrenderScore = 0;
+            double hitScore = -8;
+            double stayScore = -8;
+            double doubleScore = -8;
+            double splitScore = -8;
+            double surrenderScore = -8;
 
             List<card> remainingCards = deck.getDeckContent();
             int numRemainingCards = remainingCards.size();
-            deck newDeck;
 
             // HIT
             for (card card : remainingCards) {
                 newDeck = deck.copy();
+                newPlayerHand = hand.copy();
+                newDealerHand = dealerHand.copy();
                 newDeck.removeCard(card);
-
-                hand newPlayerHand = hand.copy();
                 newPlayerHand.addCard(card);
 
-                hitScore += makeIdealStrat(newDeck, newPlayerHand, dealerHand);
+                hitScore += makeIdealStrat(newDeck, newPlayerHand, newDealerHand);
             }
             hitScore /= numRemainingCards;
 
-
-
-            // SPLIT
-//            if (hand.isPair()) {
-//                hand hand1 = hand.copy();
-//                hand hand2 = hand1.split();
-//                double splitScore1 = 0;
-//                double splitScore2 = 0;
-//                //Needs more work
-//                for (card card : remainingCards) {
-//                    newDeck = deck.copy();
-//                    newDeck.removeCard(card);
-//                    hand newPlayerHand1 = hand1.copy();
-//                    hand newPlayerHand2 = hand2.copy();
-//
-//                    newPlayerHand1.addCard(card);
-//                    splitScore1 += makeIdealStrat(newDeck, newPlayerHand1, dealerHand);
-//
-//                    newPlayerHand2.addCard(card);
-//                    splitScore2 += makeIdealStrat(newDeck, newPlayerHand2, dealerHand);
-//                }
-//
-//                splitScore1 /= numRemainingCards;
-//                splitScore2 /= numRemainingCards;
-//                splitScore = splitScore1 + splitScore2;
-//            }
-//            else {
-//                splitScore = -8;
-//            }
             splitScore = -8;
 
             //Double
             for (card card : remainingCards) {
                 newDeck = deck.copy();
+                newPlayerHand = hand.copy();
+                newDealerHand = dealerHand.copy();
                 newDeck.removeCard(card);
-
-                hand newPlayerHand = hand.copy();
                 newPlayerHand.addCard(card);
                 newPlayerHand.makeDouble();
                 newPlayerHand.makeFinal();
 
-                doubleScore += calculateScore(newDeck, hand, dealerHand);
+                doubleScore += calculateScore(newDeck, newPlayerHand, newDealerHand);
             }
             doubleScore /= numRemainingCards;
 
             // STAY
             newDeck = deck.copy();
-            hand newPlayerHand = hand.copy();
+            newPlayerHand = hand.copy();
+            newDealerHand = dealerHand.copy();
             newPlayerHand.makeFinal();
-            stayScore = calculateScore(newDeck, newPlayerHand, dealerHand);
+            stayScore = calculateScore(newDeck, newPlayerHand, newDealerHand);
 
             //Surrender
+            newDeck = deck.copy();
+            newPlayerHand = hand.copy();
+            newDealerHand = dealerHand.copy();
             newPlayerHand.makeSurrender();
-            surrenderScore = calculateScore(newDeck, newPlayerHand, dealerHand);
+            newPlayerHand.makeFinal();
+            surrenderScore = calculateScore(newDeck, newPlayerHand, newDealerHand);
 
-            maxScore = Math.max(hitScore, Math.max(stayScore, Math.max(splitScore, Math.max(surrenderScore, doubleScore))));
+            List<Double> scores = Arrays.asList(hitScore, stayScore, splitScore, surrenderScore, doubleScore);
+            maxScore = Collections.max(scores);
 
             String action;
 
@@ -282,153 +277,123 @@ public class blackjack {
             else if (maxScore == splitScore) action = "SPLIT";
             else action = "SURRENDER";
 
-            Position position = new Position (deck, hand, dealerHand);
-
             pCache.putValue(position.hashCode(), action, maxScore);
-
-            return maxScore;
+            //System.out.println(maxScore);
+            return pCache.getValue(position.hashCode()).getScore();
         }
 
     }
 
-    // makeIdealStrat that tried to do splits
-    public static double makeIdealStrat(deck deck, List<hand> playerHands, hand dealerHand, PositionCache pCache){
-        double maxScore = -8;
-        double totalScore = 0;
+    public static double playIdeal(deck deck, hand playerHand, card dealerCard){
+        hand newPlayerHand = playerHand.copy();
+        hand dealerHand = new hand();
+        dealerHand.addCard(dealerCard);
+        deck newDeck = deck.copy();
 
-        for (int i = 0; i < playerHands.size(); i++){
-            hand hand = playerHands.get(i);
-
-            // check if the position is already in the cache
-            Position position = new Position(deck, hand, dealerHand);
-            PositionCache.Pair<String, Double> actScore = pCache.getValue(position.hashCode());
-            if (actScore != null){
-                totalScore += actScore.getScore();
-                continue;
-            }
-
-            if (hand.isBust()) {
-                deck newDeck = deck.copy();
-                hand newPlayerHand = hand.copy();
-                newPlayerHand.makeFinal();
-                totalScore += calculateScore(newDeck, newPlayerHand, dealerHand);
-            }
-            else {
-                //calculate score for different outcomes
-                double hitScore = 0;
-                double stayScore = 0;
-                double doubleScore = 0;
-                double splitScore = 0;
-                double surrenderScore = 0;
-
-                List<card> remainingCards = deck.getDeckContent();
-                int numRemainingCards = remainingCards.size();
-                deck newDeck;
-
-                // HIT
-                for (card card : remainingCards) {
-                    newDeck = deck.copy();
-                    newDeck.removeCard(card);
-
-                    List<hand> newPlayerHands = new ArrayList<>();
-                    for (int j = 0; j < playerHands.size(); j++){
-                        hand newHand = playerHands.get(j).copy();
-                        if (i == j){
-                            newHand.addCard(card);
-                        }
-                        newPlayerHands.add(newHand);
-                    }
-
-                    hitScore += makeIdealStrat(newDeck, newPlayerHands, dealerHand, pCache);
-                }
-                hitScore /= numRemainingCards;
-
-                // SPLIT
-                if (hand.isPair()) {
-                    for (int x = 0; x < numRemainingCards - 1; x++){
-                        for (int y = x + 1; y < numRemainingCards; y++){
-                            List<hand> newPlayerHands = new ArrayList<>();
-                            newDeck = deck.copy();
-
-                            card draw1 = remainingCards.get(x);
-                            card draw2 = remainingCards.get(y);
-                            newDeck.removeCard(draw1);
-                            newDeck.removeCard(draw2);
-
-                            for (int j = 0; j < playerHands.size(); j++){
-                                hand newHand = playerHands.get(j).copy();
-                                if (i == j){
-                                    hand splitHand = newHand.split();
-                                    newHand.addCard(draw1);
-                                    splitHand.addCard(draw2);
-                                    newPlayerHands.add(splitHand);
-                                }
-                                newPlayerHands.add(newHand);
-                            }
-                            splitScore += makeIdealStrat(newDeck, newPlayerHands, dealerHand, pCache);
-                        }
-                    }
-                    splitScore /= (double) (numRemainingCards - 1) * numRemainingCards / 2;
-                } else {
-                    splitScore = -8;
-                }
-
-                //Double
-                for (card card : remainingCards) {
-                    newDeck = deck.copy();
-                    newDeck.removeCard(card);
-
-                    List<hand> newPlayerHands = new ArrayList<>();
-                    for (int j = 0; j < playerHands.size(); j++){
-                        hand newHand = playerHands.get(j).copy();
-                        if (i == j){
-                            newHand.addCard(card);
-                            newHand.makeDouble();
-                            newHand.makeFinal();
-                        }
-                        newPlayerHands.add(newHand);
-                    }
-                    doubleScore += calculateScore(newDeck, hand, dealerHand);
-                }
-                doubleScore /= numRemainingCards;
-
-                // STAY
-                newDeck = deck.copy();
-                List<hand> newPlayerHands = new ArrayList<>();
-                for (int j = 0; j < playerHands.size(); j++){
-                    hand newHand = playerHands.get(j).copy();
-                    if (i == j){
-                        newHand.makeFinal();
-                    }
-                    newPlayerHands.add(newHand);
-                }
-                stayScore = calculateScore(newDeck, hand, dealerHand);
-
-                //Surrender
-                newPlayerHands.get(i).makeSurrender();
-                surrenderScore = calculateScore(newDeck, hand, dealerHand);
-
-                double MaxScore = Math.max(hitScore, Math.max(stayScore,
-                    Math.max(splitScore, Math.max(surrenderScore, doubleScore))));
-                totalScore += MaxScore;
-
-                String action;
-
-                if (MaxScore == hitScore) action = "HIT";
-                else if (MaxScore == stayScore) action = "STAY";
-                else if (MaxScore == doubleScore) action = "DOUBLE";
-                else if (MaxScore == splitScore) action = "SPLIT";
-                else action = "SURRENDER";
-
-                pCache.putValue(position.hashCode(), action, MaxScore);
-            }
+        Position position = new Position (newDeck, newPlayerHand, dealerHand);
+        int key = position.hashCode();
+        if(pCache.hasKey(key)){
+            return pCache.getValue(key).getScore();
         }
-        return totalScore;
+        else {
+            System.out.println("no key");
+            return 0;
+        }
     }
+//    public static double makeIdealStrat(deck deck, hand hand, hand dealerHand) {
+//        double maxScore = -8;
+//        Position position = new Position (deck, hand, dealerHand);
+//        int key = position.hashCode();
+//        if(pCache.hasKey(key)){
+//            return pCache.getValue(key).getScore();
+//        }
+//
+//        deck newDeck;
+//        hand newPlayerHand;
+//        hand newDealerHand;
+//        if (hand.isBust()) {
+//            newDeck = deck.copy();
+//            newPlayerHand = hand.copy();
+//            newDealerHand = dealerHand.copy();
+//            newPlayerHand.makeFinal();
+//            maxScore =  calculateScore(newDeck, newPlayerHand, newDealerHand);
+//            return maxScore;
+//        }
+//        else{
+//            //calculate score for different outcomes
+//            double hitScore = 0;
+//            double stayScore = 0;
+//            double doubleScore = 0;
+//            double splitScore = 0;
+//            double surrenderScore = 0;
+//
+//            List<card> remainingCards = deck.getDeckContent();
+//            int numRemainingCards = remainingCards.size();
+//
+//            // HIT
+//            for (card card : remainingCards) {
+//                newDeck = deck.copy();
+//                newPlayerHand = hand.copy();
+//                newDealerHand = dealerHand.copy();
+//                newDeck.removeCard(card);
+//                newPlayerHand.addCard(card);
+//
+//                hitScore += makeIdealStrat(newDeck, newPlayerHand, newDealerHand);
+//            }
+//            hitScore /= numRemainingCards;
+//
+//            splitScore = -8;
+//
+//            //Double
+//            for (card card : remainingCards) {
+//                newDeck = deck.copy();
+//                newPlayerHand = hand.copy();
+//                newDealerHand = dealerHand.copy();
+//                newDeck.removeCard(card);
+//                newPlayerHand.addCard(card);
+//                newPlayerHand.makeDouble();
+//                newPlayerHand.makeFinal();
+//
+//                doubleScore += calculateScore(newDeck, newPlayerHand, newDealerHand);
+//            }
+//            doubleScore /= numRemainingCards;
+//
+//            // STAY
+//            newDeck = deck.copy();
+//            newPlayerHand = hand.copy();
+//            newDealerHand = dealerHand.copy();
+//            newPlayerHand.makeFinal();
+//            stayScore = calculateScore(newDeck, newPlayerHand, newDealerHand);
+//
+//            //Surrender
+//            newDeck = deck.copy();
+//            newPlayerHand = hand.copy();
+//            newDealerHand = dealerHand.copy();
+//            newPlayerHand.makeSurrender();
+//            newPlayerHand.makeFinal();
+//            surrenderScore = calculateScore(newDeck, newPlayerHand, newDealerHand);
+//
+//            maxScore = Math.max(hitScore, Math.max(stayScore, Math.max(splitScore, Math.max(surrenderScore, doubleScore))));
+//
+//            String action;
+//
+//            if (maxScore == hitScore) action = "HIT";
+//            else if (maxScore == stayScore) action = "STAY";
+//            else if (maxScore == doubleScore) action = "DOUBLE";
+//            else if (maxScore == splitScore) action = "SPLIT";
+//            else action = "SURRENDER";
+//
+//            pCache.putValue(position.hashCode(), action, maxScore);
+//            //System.out.println(maxScore);
+//            return pCache.getValue(position.hashCode()).getScore();
+//        }
+//
+//    }
+
 
     private static double play(String strategy, deck deck, hand playerHand, card dealerCard){
         ArrayList<hand> hands = new ArrayList<>();
-        hands.add(playerHand);
+        hands.add(playerHand.copy());
 
         hand dealerHand = new hand();
         dealerHand.addCard(dealerCard);

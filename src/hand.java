@@ -27,6 +27,9 @@ public class hand {
 
     public hand copy() {
         hand newHand = new hand(new ArrayList<card>(this.cards));
+        newHand.isfinal = this.isfinal;
+        newHand.surrendered = this.surrendered;
+        newHand.doubled = this.doubled;
         return newHand;
     }
 
@@ -180,7 +183,7 @@ public class hand {
         }
     }
 
-    public boolean isSurrender() {
+    public boolean canSurrender() {
         // Check if the hand is eligible for surrender based on its value
         // and the rules of the game being played.
         if (this.cards.size() == 2 && this.getHardValue() == 16) {
@@ -198,7 +201,7 @@ public class hand {
 
     @Override
     public int hashCode(){
-        int[] values = new int[cards.size()];
+        int[] values = new int[cards.size()+2];
         for (int i = 0; i < cards.size(); i++) {
             int rankValue = cards.get(i).getRank().getValue();
             if (rankValue >= 10) {
@@ -207,6 +210,12 @@ public class hand {
             values[i] = rankValue;
         }
         Arrays.sort(values);
+        if(this.isSurrendered()){
+            values[0] = 1;
+        }
+        if(this.isDoubled()){
+            values[1] = 1;
+        }
         return Arrays.hashCode(values);
     }
 }

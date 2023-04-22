@@ -14,7 +14,7 @@ public class deck {
                 this.cards.add(new card(rank, suit));
             }
         }
-        shuffle();
+        this.shuffle();
     }
 
     public deck(ArrayList<card> cards){
@@ -27,6 +27,7 @@ public class deck {
 
     public void removeCards(ArrayList<card> cardsToRemove) {
         this.cards.removeAll(cardsToRemove);
+        this.shuffle();
     }
 
 

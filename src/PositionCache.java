@@ -19,19 +19,18 @@ public class PositionCache {
     }
 
     public Pair<String, Double> getValue(Integer key) {
-        try {
-            return cache.get(key); // Get value for given key from cache
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-            return null;
-        }
+        return cache.getUnchecked(key); // Get value for given key from cache
+    }
+
+    public boolean hasKey(Integer key) {
+        return cache.asMap().containsKey(key);
     }
 
     public void putValue(Integer positionHash, String action, Double score) {
         Pair<String, Double> value = new Pair<>(action, score);
 
         Pair<String, Double> currentValue = cache.getIfPresent(positionHash);
-        if (currentValue == null) {
+        if (currentValue == null || value.getScore() > currentValue.getScore()) {
             // Key not present in cache
             // Put new value for given key into cache
             cache.put(positionHash, value);
