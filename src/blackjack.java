@@ -9,6 +9,8 @@ public class blackjack {
     private static ArrayList<ArrayList<String>> hardstrat = null;
     private static ArrayList<ArrayList<String>> softstrat = null;
     private static ArrayList<ArrayList<String>> pairstrat = null;
+
+    private static PositionCache pCache = new PositionCache();
     /**
      * The main function reads in data from the given blackjack situation samples and writes
      * an output document containing the situations and next step for the player based
@@ -181,13 +183,15 @@ public class blackjack {
 
     public static double makeIdealStrat(deck deck, hand hand, hand dealerHand) {
         double maxScore = -8;
-        double totalScore = 0;
 
         if (hand.isBust()) {
             deck newDeck = deck.copy();
             hand newPlayerHand = hand.copy();
             newPlayerHand.makeFinal();
-            return calculateScore(newDeck, newPlayerHand, dealerHand);
+            maxScore =  calculateScore(newDeck, newPlayerHand, dealerHand);
+            Position position = new Position (deck, hand, dealerHand);
+            pCache.putValue(position.hashCode(), "BUST", maxScore);
+            return maxScore;
         }
         else{
             //calculate score for different outcomes
@@ -216,32 +220,33 @@ public class blackjack {
 
 
             // SPLIT
-            if (hand.isPair()) {
-                hand hand1 = hand.copy();
-                hand hand2 = hand1.split();
-                double splitScore1 = 0;
-                double splitScore2 = 0;
-                //Needs more work
-                for (card card : remainingCards) {
-                    newDeck = deck.copy();
-                    newDeck.removeCard(card);
-                    hand newPlayerHand1 = hand1.copy();
-                    hand newPlayerHand2 = hand2.copy();
-
-                    newPlayerHand1.addCard(card);
-                    splitScore1 += makeIdealStrat(newDeck, newPlayerHand1, dealerHand);
-
-                    newPlayerHand2.addCard(card);
-                    splitScore2 += makeIdealStrat(newDeck, newPlayerHand2, dealerHand);
-                }
-
-                splitScore1 /= numRemainingCards;
-                splitScore2 /= numRemainingCards;
-                splitScore = splitScore1 + splitScore2;
-            }
-            else {
-                splitScore = -8;
-            }
+//            if (hand.isPair()) {
+//                hand hand1 = hand.copy();
+//                hand hand2 = hand1.split();
+//                double splitScore1 = 0;
+//                double splitScore2 = 0;
+//                //Needs more work
+//                for (card card : remainingCards) {
+//                    newDeck = deck.copy();
+//                    newDeck.removeCard(card);
+//                    hand newPlayerHand1 = hand1.copy();
+//                    hand newPlayerHand2 = hand2.copy();
+//
+//                    newPlayerHand1.addCard(card);
+//                    splitScore1 += makeIdealStrat(newDeck, newPlayerHand1, dealerHand);
+//
+//                    newPlayerHand2.addCard(card);
+//                    splitScore2 += makeIdealStrat(newDeck, newPlayerHand2, dealerHand);
+//                }
+//
+//                splitScore1 /= numRemainingCards;
+//                splitScore2 /= numRemainingCards;
+//                splitScore = splitScore1 + splitScore2;
+//            }
+//            else {
+//                splitScore = -8;
+//            }
+            splitScore = -8;
 
             //Double
             for (card card : remainingCards) {
@@ -267,13 +272,27 @@ public class blackjack {
             newPlayerHand.makeSurrender();
             surrenderScore = calculateScore(newDeck, newPlayerHand, dealerHand);
 
-            double MaxScore = Math.max(hitScore, Math.max(stayScore, Math.max(splitScore, Math.max(surrenderScore, doubleScore))));
-            return MaxScore;
+            maxScore = Math.max(hitScore, Math.max(stayScore, Math.max(splitScore, Math.max(surrenderScore, doubleScore))));
+
+            String action;
+
+            if (maxScore == hitScore) action = "HIT";
+            else if (maxScore == stayScore) action = "STAY";
+            else if (maxScore == doubleScore) action = "DOUBLE";
+            else if (maxScore == splitScore) action = "SPLIT";
+            else action = "SURRENDER";
+
+            Position position = new Position (deck, hand, dealerHand);
+
+            pCache.putValue(position.hashCode(), action, maxScore);
+
+            return maxScore;
         }
 
     }
 
-    public static double makeIdealStrat(deck deck, List<hand> playerHands,  hand dealerHand, PositionCache pCache){
+    // makeIdealStrat that tried to do splits
+    public static double makeIdealStrat(deck deck, List<hand> playerHands, hand dealerHand, PositionCache pCache){
         double maxScore = -8;
         double totalScore = 0;
 
